@@ -1,0 +1,71 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(reticulate)
+
+library(academyDatasets)
+
+reticulate::use_virtualenv("~/.pyenv/versions/ds/")
+reticulate::py_config()
+
+rideshare
+```
+
+```{python}
+rideshare = r.rideshare
+rideshare
+```
+
+```{r}
+rideshare_ <-
+  academyDatasets::rideshare %>% 
+  filter(
+    lubridate::as_date(timestamp) == "2018-11-26", 
+    source_location == "Back Bay",
+    provider_service %in% c("Lyft XL", "UberXL", "Shared", "UberPool")
+    ) %>% 
+  select(timestamp, provider_service, price_mean, distance_mean) %>% 
+  pivot_longer(
+    cols = price_mean:distance_mean,
+    names_to = "type",
+    values_to = "value"
+  ) %>% 
+  pivot_wider(
+    names_from = provider_service,
+    values_from = value
+  )
+rideshare_
+```
+
+```{python}
+import datetime
+r = (rideshare
+  .loc[(rideshare.timestamp.dt.date == datetime.date(2018, 11, 26)) &
+       (rideshare.source_location == "Back Bay") &
+       (rideshare.provider_service.isin(["Lyft XL", "UberXL", "Shared", "UberPool"]))
+       ]
+  .loc[:, ["timestamp", "provider_service", "price_mean", "distance_mean"]]
+  .melt(id_vars=["timestamp", "provider_service"], var_name="type", value_name="value")
+  .pivot(index=["timestamp", "type"], columns="provider_service", values="value")
+  .reset_index()
+)
+
+```
+
+```{python}
+r
+```
+
+```{python}
+r.index
+```
+
+```{python}
+r.columns
+```
